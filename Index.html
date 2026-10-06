@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Celestial Night - Prom 2026 Ticket Generator</title>
+  
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- HTML2Canvas for downloading ticket badge -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Montserrat:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-dark: #0a0c16;
+      --card-bg: rgba(18, 22, 41, 0.75);
+      --gold-primary: #d4af37;
+      --gold-gradient: linear-gradient(135deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
+      --text-light: #f0f4f8;
+      --text-muted: #8a99ad;
+      --accent-blue: #4a90e2;
+      --danger: #e74c3c;
+      --success: #2ecc71;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Montserrat', sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-light);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow-x: hidden;
+      padding: 20px 10px;
+    }
+
+    /* Starry Background Animation */
+    #stars-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      overflow: hidden;
+      background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
+    }
+
+    .star {
+      position: absolute;
+      background: #fff;
+      border-radius: 50%;
+      opacity: 0.8;
+      animation: twinkle linear infinite;
+    }
+
+    @keyframes twinkle {
+      0%, 100% { opacity: 0.2; transform: scale(0.8); }
+      50% { opacity: 1; transform: scale(1.2); }
+    }
+
+    /* Glassmorphism Container */
+    .app-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(212, 175, 55, 0.3);
+      border-radius: 20px;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6), 0 0 15px rgba(212, 175, 55, 0.15);
+      width: 100%;
+      max-width: 480px;
+      padding: 35px 25px;
+      text-align: center;
+      position: relative;
+      z-index: 2;
+    }
+
+    .brand-title {
+      font-family: 'Cinzel', serif;
+      font-size: 1.8rem;
+      font-weight: 700;
+      background: var(--gold-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: 2px;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+    }
+
+    .brand-subtitle {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      letter-spacing: 3px;
+      margin-bottom: 25px;
+      text-transform: uppercase;
+    }
+
+    /* Form Inputs */
+    .form-group {
+      margin-bottom: 20px;
+      text-align: left;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--gold-primary);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .input-wrapper {
+      position: relative;
+    }
+
+    .input-wrapper i {
+      position: absolute;
+      left: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--gold-primary);
+      font-size: 1rem;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 14px 15px 14px 45px;
+      background: rgba(10, 12, 22, 0.6);
+      border: 1px solid rgba(212, 175, 55, 0.3);
+      border-radius: 10px;
+      color: #fff;
+      font-size: 0.95rem;
+      font-family: inherit;
+      transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: var(--gold-primary);
+      box-shadow: 0 0 10px rgba(212, 175, 55, 0.4);
+      background: rgba(10, 12, 22, 0.8);
+    }
+
+    .hint-text {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 5px;
+    }
+
+    /* Buttons */
+    .btn-gold {
+      width: 100%;
+      padding: 15px;
+      border: none;
+      border-radius: 10px;
+      background: var(--gold-gradient);
+      color: #000;
+      font-weight: 700;
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 5px 15px rgba(212, 175, 55, 0.3);
+      margin-top: 10px;
+    }
+
+    .btn-gold:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(212, 175, 55, 0.5);
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--gold-primary);
+      color: var(--gold-primary);
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .btn-outline:hover {
+      background: rgba(212, 175, 55, 0.15);
+      color: #fff;
+    }
+
+    /* Ticket Badge Card */
+    #ticket-display {
+      display: none;
+    }
+
+    .ticket-card {
+      background: linear-gradient(145deg, #131728, #0b0d18);
+      border: 2px solid var(--gold-primary);
+      border-radius: 16px;
+      padding: 25px;
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+    }
+
+    .ticket-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(212,175,55,0.08) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .ticket-header {
+      border-bottom: 1px dashed rgba(212, 175, 55, 0.4);
+      padding-bottom: 15px;
+      margin-bottom: 20px;
+    }
+
+    .ticket-number-box {
+      background: var(--gold-gradient);
+      color: #000;
+      display: inline-block;
+      padding: 8px 20px;
+      border-radius: 50px;
+      font-family: 'Cinzel', serif;
+      font-weight: 900;
+      font-size: 1.4rem;
+      letter-spacing: 2px;
+      margin-top: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+
+    .star-assignment {
+      margin: 20px 0;
+    }
+
+    .star-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .star-val {
+      font-family: 'Cinzel', serif;
+      font-size: 1.8rem;
+      color: #fff;
+      font-weight: 700;
+      margin-top: 5px;
+      text-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+    }
+
+    .guest-info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      text-align: left;
+      background: rgba(255,255,255,0.03);
+      padding: 15px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+    }
+
+    .info-item span {
+      display: block;
+      color: var(--text-muted);
+      font-size: 0.7rem;
+      text-transform: uppercase;
+    }
+
+    .info-item strong {
+      color: #fff;
+      font-size: 0.95rem;
+    }
+
+    /* Admin Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: #0f1220;
+      border: 1px solid var(--gold-primary);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 700px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 25px;
+      position: relative;
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      font-size: 1.5rem;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    /* Wheel Area */
+    .wheel-container {
+      position: relative;
+      width: 260px;
+      height: 260px;
+      margin: 20px auto;
+    }
+
+    #wheel-canvas {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      border: 4px solid var(--gold-primary);
+      box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);
+    }
+
+    .pointer {
+      position: absolute;
+      top: -15px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 12px solid transparent;
+      border-right: 12px solid transparent;
+      border-top: 24px solid var(--gold-primary);
+      z-index: 10;
+    }
+
+    /* Table styling */
+    .admin-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+      font-size: 0.85rem;
+    }
+
+    .admin-table th, .admin-table td {
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .admin-table th {
+      color: var(--gold-primary);
+      text-transform: uppercase;
+      font-size: 0.75rem;
+    }
+
+    /* Footer / Admin Trigger */
+    .footer-admin {
+      margin-top: 25px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .admin-link {
+      color: var(--gold-primary);
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    .badge-existing {
+      background: rgba(74, 144, 226, 0.2);
+      color: var(--accent-blue);
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      display: inline-block;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Starry Background -->
+  <div id="stars-container"></div>
+
+  <!-- Main Application Card -->
+  <div class="app-card">
+    <div class="brand-title">Celestial Night</div>
+    <div class="brand-subtitle">Hostel Prom 2026 Ticket Claim</div>
+
+    <!-- Step 1: Claim Form -->
+    <form id="claim-form">
+      <div class="form-group">
+        <label for="fullName">Full Name</label>
+        <div class="input-wrapper">
+          <i class="fa-solid fa-user"></i>
+          <input type="text" id="fullName" class="form-control" placeholder="e.g. Alex Tan" required>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="roomNumber">Hostel Room / Block</label>
+        <div class="input-wrapper">
+          <i class="fa-solid fa-door-closed"></i>
+          <input type="text" id="roomNumber" class="form-control" placeholder="e.g. B-04-12" required>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="nricLast4">Last 4 Digits of NRIC / ID</label>
+        <div class="input-wrapper">
+          <i class="fa-solid fa-id-card"></i>
+          <input type="text" id="nricLast4" class="form-control" maxlength="4" pattern="\d{4}" placeholder="e.g. 5678" required>
+        </div>
+        <div class="hint-text">Used as unique identifier to prevent duplicate entries.</div>
+      </div>
+
+      <button type="submit" class="btn-gold" id="btn-submit">
+        <i class="fa-solid fa-star"></i> Claim Prom Pass
+      </button>
+    </form>
+
+    <!-- Step 2: Display Ticket Badge -->
+    <div id="ticket-display">
+      <div id="welcome-status" class="badge-existing" style="display:none;">
+        <i class="fa-solid fa-rotate-left"></i> Welcome back! Found your existing pass.
+      </div>
+
+      <div class="ticket-card" id="printable-ticket">
+        <div class="ticket-header">
+          <div style="font-size: 0.8rem; color: var(--gold-primary); text-transform: uppercase; letter-spacing: 1px;">Lucky Draw Entry</div>
+          <div class="ticket-number-box" id="ticket-num-val">#000</div>
+        </div>
+
+        <div class="star-assignment">
+          <div class="star-label">Assigned Celestial Star</div>
+          <div class="star-val" id="star-name-val">SIRIUS</div>
+        </div>
+
+        <div class="guest-info-grid">
+          <div class="info-item">
+            <span>Guest Name</span>
+            <strong id="pass-guest-name">-</strong>
+          </div>
+          <div class="info-item">
+            <span>Room / Block</span>
+            <strong id="pass-room-num">-</strong>
+          </div>
+          <div class="info-item">
+            <span>ID Verification</span>
+            <strong id="pass-nric-val">****-5678</strong>
+          </div>
+          <div class="info-item">
+            <span>Date</span>
+            <strong>Prom Night 2026</strong>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 10px; margin-top: 15px;">
+        <button class="btn-outline" style="flex: 1;" onclick="downloadTicketCard()">
+          <i class="fa-solid fa-download"></i> Save Badge
+        </button>
+        <button class="btn-outline" style="flex: 1;" onclick="resetFormView()">
+          <i class="fa-solid fa-user-plus"></i> New Pass
+        </button>
+      </div>
+    </div>
+
+    <div class="footer-admin">
+      Organizing Team? <span class="admin-link" onclick="openAdminModal()">Open Admin Dashboard</span>
+    </div>
+  </div>
+
+  <!-- Admin & Lucky Draw Modal -->
+  <div class="modal" id="adminModal">
+    <div class="modal-content">
+      <span class="close-btn" onclick="closeAdminModal()">&times;</span>
+      <h2 style="font-family:'Cinzel'; color:var(--gold-primary); margin-bottom: 15px;">Prom Admin & Lucky Draw</h2>
+
+      <div id="admin-auth" style="margin-bottom:20px;">
+        <div class="form-group">
+          <label>Enter Admin Password</label>
+          <div class="input-wrapper">
+            <i class="fa-solid fa-lock"></i>
+            <input type="password" id="adminPassInput" class="form-control" placeholder="Default: admin123">
+          </div>
+        </div>
+        <button class="btn-gold" onclick="authenticateAdmin()">Login</button>
+      </div>
+
+      <div id="admin-panel" style="display:none;">
+        <div style="display: flex; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; margin-bottom: 20px;">
+          <button class="btn-outline" onclick="switchAdminTab('draw')"><i class="fa-solid fa-trophy"></i> Lucky Draw Wheel</button>
+          <button class="btn-outline" onclick="switchAdminTab('roster')"><i class="fa-solid fa-list"></i> Guest Roster (<span id="count-total">0</span>)</button>
+        </div>
+
+        <!-- Tab 1: Spinner Wheel -->
+        <div id="tab-draw">
+          <div class="wheel-container">
+            <div class="pointer"></div>
+            <canvas id="wheel-canvas" width="260" height="260"></canvas>
+          </div>
+          <button class="btn-gold" id="btn-spin" onclick="spinLuckyWheel()">
+            <i class="fa-solid fa-arrows-spin"></i> Spin Wheel
+          </button>
+          <div id="winner-announcement" style="margin-top: 20px; font-size: 1.3rem; text-align: center; font-family:'Cinzel'; color: var(--gold-primary);"></div>
+        </div>
+
+        <!-- Tab 2: Roster Table -->
+        <div id="tab-roster" style="display:none;">
+          <div style="display:flex; justify-content:space-between; margin-bottom: 10px;">
+            <input type="text" id="rosterSearch" class="form-control" style="width: 60%; padding:8px 15px;" placeholder="Search name/NRIC/number..." onkeyup="filterRosterTable()">
+            <button class="btn-outline" onclick="exportCSV()"><i class="fa-solid fa-file-csv"></i> Export CSV</button>
+          </div>
+          <div style="max-height: 300px; overflow-y: auto;">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Name</th>
+                  <th>Room</th>
+                  <th>NRIC</th>
+                  <th>Star</th>
+                </tr>
+              </thead>
+              <tbody id="rosterTableBody">
+                <!-- Dynamic Rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ==========================================================================
+       1. CONFIGURATION & STAR CATALOG
+       ========================================================================== */
+    const SUPABASE_URL = 'https://hnykyofvbvmhakaeyqvk.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_JzIu18PX3qQ3KSBaK7nmuw_pYPVl7_q';
+
+    // 400 Star Name Catalog Example Pool
+    const STAR_CATALOG = [
+      "Sirius", "Canopus", "Arcturus", "Alpha Centauri", "Vega", "Capella", "Rigel", "Procyon", "Achernar", "Betelgeuse",
+      "Hadar", "Altair", "Acrux", "Aldebaran", "Antares", "Spica", "Pollux", "Fomalhaut", "Deneb", "Mimosa",
+      "Regulus", "Adhara", "Castor", "Gacrux", "Shaula", "Bellatrix", "Elnath", "Miaplacidus", "Alnilam", "Alnitak",
+      "Alioth", "Dubhe", "Mirfak", "Wezen", "Sargas", "Kaus Australis", "Avior", "Alkaid", "Menkalinan", "Atria",
+      "Alhena", "Peacock", "Alsephina", "Mirzam", "Alphard", "Polaris", "Hamal", "Algieba", "Diphda", "Mizar",
+      "Nunki", "Menkent", "Almach", "Alphecca", "Sadr", "Tianyi", "Taiyi", "Suhail", "Algol", "Electra",
+      "Maia", "Merope", "Taygeta", "Pleione", "Celaeno", "Sterope", "Atlas", "Alcyone", "Thuban", "Kochab",
+      "Rastaban", "Eltanin", "Scheat", "Markab", "Algenib", "Enif", "Sabik", "Shedar", "Caph", "Ruchbah",
+      "Denebola", "Phact", "Naos", "Seginus", "Alrescha", "Mintaka", "Saiph", "Gienah", "Graffias", "Dschubba"
+    ];
+
+    let supabaseClient = null;
+    if (SUPABASE_URL !== 'YOUR_SUPABASE_URL_HERE' && SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY_HERE') {
+      supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
+
+    // LocalStorage Backup Data
+    let localTickets = JSON.parse(localStorage.getItem('prom_tickets_backup') || '[]');
+
+    /* ==========================================================================
+       2. INITIALIZATION & STARRY BACKGROUND
+       ========================================================================== */
+    window.addEventListener('DOMContentLoaded', () => {
+      createStarfield();
+      checkExistingSession();
+      drawInitialWheel();
+    });
+
+    function createStarfield() {
+      const container = document.getElementById('stars-container');
+      const starCount = 120;
+      for (let i = 0; i < starCount; i++) {
+        const star = document.createElement('div');
+        star.className = 'star';
+        star.style.width = `${Math.random() * 3 + 1}px`;
+        star.style.height = star.style.width;
+        star.style.left = `${Math.random() * 100}%`;
+        star.style.top = `${Math.random() * 100}%`;
+        star.style.animationDuration = `${Math.random() * 3 + 2}s`;
+        star.style.animationDelay = `${Math.random() * 3}s`;
+        container.appendChild(star);
+      }
+    }
+
+    function checkExistingSession() {
+      const savedPass = localStorage.getItem('my_prom_pass');
+      if (savedPass) {
+        displayTicketBadge(JSON.parse(savedPass), true);
+      }
+    }
+
+    /* ==========================================================================
+       3. TICKET CLAIM & DUPLICATE PREVENTING LOGIC
+       ========================================================================== */
+    document.getElementById('claim-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const btn = document.getElementById('btn-submit');
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Processing...`;
+
+      const name = document.getElementById('fullName').value.trim();
+      const room = document.getElementById('roomNumber').value.trim();
+      const nric = document.getElementById('nricLast4').value.trim();
+
+      let ticketData = null;
+      let isExisting = false;
+
+      try {
+        if (supabaseClient) {
+          // 1. Check if NRIC exists in Supabase
+          const { data: existing, error: searchError } = await supabaseClient
+            .from('tickets')
+            .select('*')
+            .eq('nric_4', nric)
+            .maybeSingle();
+
+          if (existing) {
+            ticketData = existing;
+            isExisting = true;
+          } else {
+            // 2. Assign new atomic ticket via RPC function or count
+            const { count } = await supabaseClient.from('tickets').select('*', { count: 'exact', head: true });
+            const nextNum = (count || 0) + 1;
+            const star = STAR_CATALOG[(nextNum - 1) % STAR_CATALOG.length];
+
+            const { data: inserted, error: insertError } = await supabaseClient
+              .from('tickets')
+              .insert([{ name, room, nric_4: nric, star_name: star, ticket_number: nextNum }])
+              .select()
+              .single();
+
+            if (insertError) throw insertError;
+            ticketData = inserted;
+          }
+        } else {
+          // Fallback LocalStorage Mode
+          const existingLocal = localTickets.find(t => t.nric_4 === nric);
+          if (existingLocal) {
+            ticketData = existingLocal;
+            isExisting = true;
+          } else {
+            const nextNum = localTickets.length + 1;
+            const star = STAR_CATALOG[(nextNum - 1) % STAR_CATALOG.length];
+            ticketData = { name, room, nric_4: nric, star_name: star, ticket_number: nextNum };
+            localTickets.push(ticketData);
+            localStorage.setItem('prom_tickets_backup', JSON.stringify(localTickets));
+          }
+        }
+
+        // Cache user's ticket on phone
+        localStorage.setItem('my_prom_pass', JSON.stringify(ticketData));
+        
+        // Render Ticket
+        displayTicketBadge(ticketData, isExisting);
+        
+        if (!isExisting) {
+          confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+        }
+
+      } catch (err) {
+        alert("An error occurred while generating your pass. Please try again.");
+        console.error(err);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fa-solid fa-star"></i> Claim Prom Pass`;
+      }
+    });
+
+    function displayTicketBadge(ticket, isExisting = false) {
+      document.getElementById('claim-form').style.display = 'none';
+      document.getElementById('ticket-display').style.display = 'block';
+
+      document.getElementById('welcome-status').style.display = isExisting ? 'inline-block' : 'none';
+      document.getElementById('ticket-num-val').innerText = `#${String(ticket.ticket_number).padStart(3, '0')}`;
+      document.getElementById('star-name-val').innerText = ticket.star_name;
+      document.getElementById('pass-guest-name').innerText = ticket.name;
+      document.getElementById('pass-room-num').innerText = ticket.room;
+      document.getElementById('pass-nric-val').innerText = `****-${ticket.nric_4}`;
+    }
+
+    function resetFormView() {
+      document.getElementById('ticket-display').style.display = 'none';
+      document.getElementById('claim-form').style.display = 'block';
+    }
+
+    function downloadTicketCard() {
+      const card = document.getElementById('printable-ticket');
+      html2canvas(card, { backgroundColor: '#0b0d18', scale: 2 }).then(canvas => {
+        const link = document.createElement('a');
+        link.download = `PromPass_${document.getElementById('ticket-num-val').innerText}.png`;
+        link.href = canvas.toDataURL();
+        link.click();
+      });
+    }
+
+    /* ==========================================================================
+       4. ADMIN PANEL & LUCKY DRAW SPINNER
+       ========================================================================== */
+    function openAdminModal() {
+      document.getElementById('adminModal').classList.add('active');
+    }
+
+    function closeAdminModal() {
+      document.getElementById('adminModal').classList.remove('active');
+    }
+
+    function authenticateAdmin() {
+      const pass = document.getElementById('adminPassInput').value;
+      if (pass === 'admin123') {
+        document.getElementById('admin-auth').style.display = 'none';
+        document.getElementById('admin-panel').style.display = 'block';
+        loadAdminRoster();
+      } else {
+        alert("Incorrect Admin Password.");
+      }
+    }
+
+    function switchAdminTab(tab) {
+      document.getElementById('tab-draw').style.display = tab === 'draw' ? 'block' : 'none';
+      document.getElementById('tab-roster').style.display = tab === 'roster' ? 'block' : 'none';
+    }
+
+    let allRosterData = [];
+
+    async function loadAdminRoster() {
+      if (supabaseClient) {
+        const { data } = await supabaseClient.from('tickets').select('*').order('ticket_number', { ascending: true });
+        allRosterData = data || [];
+      } else {
+        allRosterData = localTickets;
+      }
+
+      document.getElementById('count-total').innerText = allRosterData.length;
+      renderRosterTable(allRosterData);
+    }
+
+    function renderRosterTable(data) {
+      const tbody = document.getElementById('rosterTableBody');
+      tbody.innerHTML = '';
+      data.forEach(t => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>#${String(t.ticket_number).padStart(3, '0')}</strong></td>
+          <td>${t.name}</td>
+          <td>${t.room}</td>
+          <td>****-${t.nric_4}</td>
+          <td>${t.star_name}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function filterRosterTable() {
+      const query = document.getElementById('rosterSearch').value.toLowerCase();
+      const filtered = allRosterData.filter(t => 
+        t.name.toLowerCase().includes(query) || 
+        t.nric_4.includes(query) || 
+        String(t.ticket_number).includes(query)
+      );
+      renderRosterTable(filtered);
+    }
+
+    function exportCSV() {
+      let csvStr = "TicketNumber,Name,Room,NRIC_4,StarName\n";
+      allRosterData.forEach(t => {
+        csvStr += `"${t.ticket_number}","${t.name}","${t.room}","${t.nric_4}","${t.star_name}"\n`;
+      });
+      const blob = new Blob([csvStr], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'prom_guests_roster.csv';
+      a.click();
+    }
+
+    /* Wheel Animation */
+    const canvas = document.getElementById('wheel-canvas');
+    const ctx = canvas.getContext('2d');
+
+    function drawInitialWheel() {
+      ctx.clearRect(0, 0, 260, 260);
+      const slices = 8;
+      const sliceAngle = (2 * Math.PI) / slices;
+      for (let i = 0; i < slices; i++) {
+        ctx.beginPath();
+        ctx.fillStyle = i % 2 === 0 ? '#1b2735' : '#d4af37';
+        ctx.moveTo(130, 130);
+        ctx.arc(130, 130, 120, i * sliceAngle, (i + 1) * sliceAngle);
+        ctx.fill();
+      }
+    }
+
+    let isSpinning = false;
+    function spinLuckyWheel() {
+      if (isSpinning || allRosterData.length === 0) {
+        if (allRosterData.length === 0) alert("No registered tickets yet!");
+        return;
+      }
+
+      isSpinning = true;
+      document.getElementById('winner-announcement').innerText = "Spinning...";
+
+      const winner = allRosterData[Math.floor(Math.random() * allRosterData.length)];
+      let startAngle = 0;
+      const totalRotation = Math.PI * 2 * 5 + Math.random() * Math.PI * 2;
+      const duration = 4000;
+      const startTime = performance.now();
+
+      function animate(time) {
+        const elapsed = time - startTime;
+        if (elapsed < duration) {
+          const progress = elapsed / duration;
+          const easeOut = 1 - Math.pow(1 - progress, 3);
+          const currentAngle = startAngle + easeOut * totalRotation;
+          
+          ctx.save();
+          ctx.translate(130, 130);
+          ctx.rotate(currentAngle);
+          ctx.translate(-130, -130);
+          drawInitialWheel();
+          ctx.restore();
+
+          requestAnimationFrame(animate);
+        } else {
+          isSpinning = false;
+          document.getElementById('winner-announcement').innerHTML = `
+            🎉 WINNER: <strong>#${String(winner.ticket_number).padStart(3, '0')}</strong><br>
+            <span style="font-size:1rem; color:#fff;">${winner.name} (${winner.star_name})</span>
+          `;
+          confetti({ particleCount: 150, spread: 90, origin: { y: 0.5 } });
+        }
+      }
+
+      requestAnimationFrame(animate);
+    }
+  </script>
+</body>
+</html>
